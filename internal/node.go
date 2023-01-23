@@ -19,6 +19,44 @@ const (
 	ChildNW
 )
 
+type next struct {
+	child Child
+	edge  Edge
+}
+
+var (
+	// fsm is a transition table for looking up cell neighbors. See Yoder
+	// 2006 for more information. Here, R, L, D, U are replaced with EdgeE,
+	// EdgeW, EdgeS, and EdgeN respectively, and quadrants 0, 1, 2, 3 are
+	// replaced with ChildNW, ChildNE, ChildSW, and ChildSE respectively.
+	fsm = map[Edge]map[Child]next{
+		EdgeE: map[Child]next{
+			ChildNE: next{Child: ChildNW, Edge: EdgeE},
+			ChildSE: next{Child: ChildSW, Edge: EdgeE},
+			ChildSW: next{Child: ChildSE, Edge: EdgeNone},
+			ChildNW: next{Child: ChildNE, Edge: EdgeNone},
+		},
+		EdgeW: map[Child]next{
+			ChildNE: next{Child: ChildNW, Edge: EdgeNone},
+			ChildSE: next{Child: ChildSW, Edge: EdgeNone},
+			ChildSW: next{Child: ChildSE, Edge: EdgeW},
+			ChildNW: next{Child: ChildNE, Edge: EdgeW},
+		},
+		EdgeS: map[Child]next{
+			ChildNE: next{Child: ChildSE, Edge: EdgeNone},
+			ChildSE: next{Child: ChildNE, Edge: EdgeS},
+			ChildSW: next{Child: ChildNW, Edge: EdgeS},
+			ChildNW: next{Child: ChildSW, Edge: EdgeNone},
+		},
+		EdgeN: map[Child]next{
+			ChildNE: next{Child: ChildSE, Edge: EdgeN},
+			ChildSE: next{Child: ChildNE, Edge: EdgeNone},
+			ChildSW: next{Child: ChildNW, Edge: EdgeNone},
+			ChildNW: next{Child: ChildSW, Edge: EdgeN},
+		},
+	}
+)
+
 type Edge uint
 
 const (
@@ -264,4 +302,8 @@ func (n *N) Remove(x id.ID, data map[id.ID]hyperrectangle.R) {
 			}
 		}
 	}
+}
+
+func (n *N) Neighbors() *N {
+	return nil
 }
