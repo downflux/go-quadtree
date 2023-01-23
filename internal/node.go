@@ -77,6 +77,8 @@ func (n *N) Path() []Child {
 	return path
 }
 
+func (n *N) IsLeaf() bool { return n.children[ChildNE] == nil }
+
 func (n *N) Edge(c Edge) []*N {
 	children := make([]*N, 0, 16)
 
@@ -160,8 +162,6 @@ func (n *N) split(p vector.V, data map[id.ID]hyperrectangle.R) {
 
 	n.lookup = make(map[id.ID]bool, 16)
 }
-
-func (n *N) IsLeaf() bool { return n.children[ChildNE] == nil }
 
 func (n *N) Insert(x id.ID, data map[id.ID]hyperrectangle.R) {
 	aabb := data[x]

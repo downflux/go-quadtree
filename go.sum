@@ -3,3 +3,4 @@ github.com/downflux/go-geometry v0.15.4/go.mod h1:ZJcto0QwYRdoIbi5G4mh5y6v2xUS+d
 github.com/downflux/go-pq v0.3.0 h1:oWLx7rzsD4fv1f2kp33NUq63CJVQvXZORkcpHr6bp9g=
 github.com/downflux/go-pq v0.3.0/go.mod h1:vkc6UAQ+TBoNdTwDm5akDexE1auN2kQcR8BFw3hNCiM=
 github.com/google/go-cmp v0.5.8 h1:e6P7q2lk1O+qJJb4BtCQXlK8vWEO8V1ZeuEdJNOqZyg=
+github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
