@@ -13,19 +13,26 @@ const (
 	tolerance  = 1
 )
 
-type Child int
+type Child uint
 
 const (
-	ChildNE Child = iota
-	ChildSE
-	ChildSW
-	ChildNW
+	ChildNone Child = 0
+
+	ChildN Child = 1 << iota
+	ChildE
+	ChildS
+	ChildW
+
+	ChildNE = ChildN | ChildE
+	ChildSE = ChildS | ChildE
+	ChildSW = ChildS | ChildW
+	ChildNW = ChildN | ChildW
 )
 
 type N struct {
 	depth    int
 	parent   *N
-	children [4]*N
+	children map[Child]*N
 	aabb     hyperrectangle.R
 
 	lookup map[id.ID]bool
@@ -33,7 +40,8 @@ type N struct {
 
 func New(aabb hyperrectangle.R) *N {
 	return &N{
-		aabb: aabb,
+		aabb:     aabb,
+		children: make(map[Child]*N, 4),
 	}
 }
 
