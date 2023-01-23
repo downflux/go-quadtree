@@ -285,6 +285,201 @@ func TestSplit(t *testing.T) {
 	}
 }
 
+func TestRemove(t *testing.T) {
+	type config struct {
+		name string
+		n    *N
+		x    id.ID
+		data map[id.ID]hyperrectangle.R
+		want *N
+	}
+
+	configs := []config{
+		func() config {
+			data := map[id.ID]hyperrectangle.R{
+				100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+				101: *hyperrectangle.New(vector.V{99, 99}, vector.V{100, 100}),
+			}
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{100: true},
+			}
+
+			return config{
+				name: "Simple",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{100: true, 101: true},
+				},
+				x:    101,
+				data: data,
+				want: want,
+			}
+		}(),
+		func() config {
+			data := map[id.ID]hyperrectangle.R{
+				100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+			}
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{},
+			}
+
+			return config{
+				name: "Root/NoCollapse",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{100: true},
+				},
+				x:    100,
+				data: data,
+				want: want,
+			}
+		}(),
+		func() config {
+			data := map[id.ID]hyperrectangle.R{
+				100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+			}
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{},
+			}
+
+			n := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{},
+			}
+			n.children = [4]*N{
+				&N{
+					depth:  1,
+					corner: ChildNE,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+				},
+				&N{
+					depth:  1,
+					corner: ChildSE,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+				},
+				&N{
+					depth:  1,
+					corner: ChildSW,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					lookup: map[id.ID]bool{100: true},
+				},
+				&N{
+					depth:  1,
+					corner: ChildNW,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+				},
+			}
+
+			return config{
+				name: "Child/Collapse",
+				n:    n,
+				x:    100,
+				data: data,
+				want: want,
+			}
+		}(),
+		func() config {
+			data := map[id.ID]hyperrectangle.R{
+				100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+				101: *hyperrectangle.New(vector.V{99, 99}, vector.V{100, 100}),
+			}
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{},
+			}
+			want.children = [4]*N{
+				&N{
+					depth:  1,
+					corner: ChildNE,
+					parent: want,
+					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{101: true},
+				},
+				&N{
+					depth:  1,
+					corner: ChildSE,
+					parent: want,
+					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					corner: ChildSW,
+					parent: want,
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					corner: ChildNW,
+					parent: want,
+					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					lookup: map[id.ID]bool{},
+				},
+			}
+
+			n := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{},
+			}
+			n.children = [4]*N{
+				&N{
+					depth:  1,
+					corner: ChildNE,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{101: true},
+				},
+				&N{
+					depth:  1,
+					corner: ChildSE,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					corner: ChildSW,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					lookup: map[id.ID]bool{100: true},
+				},
+				&N{
+					depth:  1,
+					corner: ChildNW,
+					parent: n,
+					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					lookup: map[id.ID]bool{},
+				},
+			}
+
+			return config{
+				name: "Child/NoCollapse",
+				n:    n,
+				x:    100,
+				data: data,
+				want: want,
+			}
+		}(),
+	}
+
+	for _, c := range configs {
+		t.Run(c.name, func(t *testing.T) {
+			c.n.Remove(c.x, c.data)
+			if diff := cmp.Diff(c.want, c.n, opts...); diff != "" {
+				t.Errorf("Remove() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
 func TestInsert(t *testing.T) {
 	type config struct {
 		name string
