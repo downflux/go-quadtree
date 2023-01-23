@@ -45,6 +45,34 @@ func New(aabb hyperrectangle.R) *N {
 	}
 }
 
+func (n *N) Edge(c Child) []*N {
+	children := make([]*N, 0, 16)
+	open := []*N{n}
+	var m *N
+	for len(open) > 0 {
+		m, open = open[0], open[1:]
+		if m.IsLeaf() {
+			children = append(children, m)
+			continue
+		}
+
+		if c&ChildN == ChildN {
+			open = append(open, m.children[ChildN])
+		}
+		if c&ChildE == ChildE {
+			open = append(open, m.children[ChildE])
+		}
+		if c&ChildS == ChildS {
+			open = append(open, m.children[ChildS])
+		}
+		if c&ChildW == ChildW {
+			open = append(open, m.children[ChildW])
+		}
+	}
+
+	return children
+}
+
 func (n *N) split(p vector.V, data map[id.ID]hyperrectangle.R) {
 	if n.depth == depthLimit {
 		panic("cannot split past the depth limit")
