@@ -10,11 +10,6 @@ import (
 	"github.com/downflux/go-quadtree/id"
 )
 
-const (
-	depthLimit = 10
-	tolerance  = 1
-)
-
 type Child uint
 
 const (
@@ -41,6 +36,9 @@ const (
 )
 
 type N struct {
+	tolerance float64
+	floor     int
+
 	depth int
 
 	parent *N
@@ -55,9 +53,15 @@ type N struct {
 }
 
 // New returns a root node.
-func New(aabb hyperrectangle.R) *N {
+func New(aabb hyperrectangle.R, tolerance float64, floor int) *N {
+	if floor <= 0 {
+		panic("floor must be a positive integer")
+	}
+
 	return &N{
-		aabb: aabb,
+		aabb:      aabb,
+		tolerance: tolerance,
+		floor:     floor,
 	}
 }
 
@@ -117,7 +121,7 @@ func (n *N) Edge(e Edge) []*N {
 }
 
 func (n *N) split(data map[id.ID]hyperrectangle.R) {
-	if n.depth == depthLimit {
+	if n.depth == n.floor {
 		panic("cannot split past the depth limit")
 	}
 
@@ -151,6 +155,8 @@ func (n *N) split(data map[id.ID]hyperrectangle.R) {
 		c.depth = n.depth + 1
 		c.parent = n
 		c.lookup = make(map[id.ID]bool, len(n.lookup))
+		c.tolerance = n.tolerance
+		c.floor = n.floor
 
 		for x := range n.lookup {
 			aabb := data[x]
@@ -160,7 +166,7 @@ func (n *N) split(data map[id.ID]hyperrectangle.R) {
 		}
 	}
 
-	n.lookup = make(map[id.ID]bool, 16)
+	n.lookup = map[id.ID]bool{}
 }
 
 func (n *N) Insert(x id.ID, data map[id.ID]hyperrectangle.R) {
@@ -186,7 +192,7 @@ func (n *N) Insert(x id.ID, data map[id.ID]hyperrectangle.R) {
 			continue
 		}
 
-		if m.depth >= depthLimit || epsilon.Absolute(tolerance).Within(
+		if m.depth >= m.floor || epsilon.Absolute(m.tolerance).Within(
 			hyperrectangle.V(m.aabb),
 			hyperrectangle.V(aabb),
 		) {

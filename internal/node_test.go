@@ -223,6 +223,7 @@ func TestSplit(t *testing.T) {
 					vector.V{100, 100},
 				),
 				lookup: map[id.ID]bool{},
+				floor:  1,
 			}
 			want.children = [4]*N{
 				&N{
@@ -231,6 +232,7 @@ func TestSplit(t *testing.T) {
 					corner: ChildNE,
 					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
 					lookup: map[id.ID]bool{},
+					floor:  1,
 				},
 				&N{
 					depth:  1,
@@ -238,6 +240,7 @@ func TestSplit(t *testing.T) {
 					corner: ChildSE,
 					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
 					lookup: map[id.ID]bool{},
+					floor:  1,
 				},
 				&N{
 					depth:  1,
@@ -245,6 +248,7 @@ func TestSplit(t *testing.T) {
 					corner: ChildSW,
 					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
 					lookup: map[id.ID]bool{100: true},
+					floor:  1,
 				},
 				&N{
 					depth:  1,
@@ -252,6 +256,7 @@ func TestSplit(t *testing.T) {
 					corner: ChildNW,
 					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
 					lookup: map[id.ID]bool{100: true},
+					floor:  1,
 				},
 			}
 			data := map[id.ID]hyperrectangle.R{
@@ -262,6 +267,7 @@ func TestSplit(t *testing.T) {
 				n: &N{
 					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
 					lookup: map[id.ID]bool{100: true},
+					floor:  1,
 				},
 				data: data,
 				want: want,
