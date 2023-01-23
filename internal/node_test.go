@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/downflux/go-geometry/nd/hyperrectangle"
+	"github.com/downflux/go-geometry/nd/vector"
+	"github.com/downflux/go-quadtree/id"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -200,6 +202,78 @@ func TestIsLeaf(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if got := c.n.IsLeaf(); got != c.want {
 				t.Errorf("IsLeaf() = %v, want = %v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestSplit(t *testing.T) {
+	type config struct {
+		name string
+		n    *N
+		data map[id.ID]hyperrectangle.R
+		want *N
+	}
+
+	configs := []config{
+		func() config {
+			want := &N{
+				aabb: *hyperrectangle.New(
+					vector.V{0, 0},
+					vector.V{100, 100},
+				),
+				lookup: map[id.ID]bool{},
+			}
+			want.children = [4]*N{
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildNE,
+					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildSE,
+					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildSW,
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					lookup: map[id.ID]bool{100: true},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildNW,
+					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					lookup: map[id.ID]bool{100: true},
+				},
+			}
+			data := map[id.ID]hyperrectangle.R{
+				100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 100}),
+			}
+			return config{
+				name: "Trivial",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{100: true},
+				},
+				data: data,
+				want: want,
+			}
+		}(),
+	}
+
+	for _, c := range configs {
+		t.Run(c.name, func(t *testing.T) {
+			c.n.split(c.data)
+			if diff := cmp.Diff(c.want, c.n, opts...); diff != "" {
+				t.Errorf("split() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}

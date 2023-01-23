@@ -116,7 +116,7 @@ func (n *N) Edge(e Edge) []*N {
 	return children
 }
 
-func (n *N) split(p vector.V, data map[id.ID]hyperrectangle.R) {
+func (n *N) split(data map[id.ID]hyperrectangle.R) {
 	if n.depth == depthLimit {
 		panic("cannot split past the depth limit")
 	}
@@ -128,23 +128,23 @@ func (n *N) split(p vector.V, data map[id.ID]hyperrectangle.R) {
 	xmin, ymin := n.aabb.Min().X(vector.AXIS_X), n.aabb.Min().X(vector.AXIS_Y)
 	xmax, ymax := n.aabb.Max().X(vector.AXIS_X), n.aabb.Max().X(vector.AXIS_Y)
 
-	px, py := p.X(vector.AXIS_X), p.X(vector.AXIS_Y)
+	xmid, ymid := xmin+(xmax-xmin)/2, ymin+(ymax-ymin)/2
 
 	n.children[ChildNE] = &N{
 		corner: ChildNE,
-		aabb:   *hyperrectangle.New(vector.V{px, py}, vector.V{xmax, ymax}),
+		aabb:   *hyperrectangle.New(vector.V{xmid, ymid}, vector.V{xmax, ymax}),
 	}
 	n.children[ChildSE] = &N{
 		corner: ChildSE,
-		aabb:   *hyperrectangle.New(vector.V{px, ymin}, vector.V{xmax, py}),
+		aabb:   *hyperrectangle.New(vector.V{xmid, ymin}, vector.V{xmax, ymid}),
 	}
 	n.children[ChildSW] = &N{
 		corner: ChildSW,
-		aabb:   *hyperrectangle.New(vector.V{xmin, ymin}, vector.V{px, py}),
+		aabb:   *hyperrectangle.New(vector.V{xmin, ymin}, vector.V{xmid, ymid}),
 	}
 	n.children[ChildNW] = &N{
 		corner: ChildNW,
-		aabb:   *hyperrectangle.New(vector.V{xmin, py}, vector.V{px, ymax}),
+		aabb:   *hyperrectangle.New(vector.V{xmin, ymid}, vector.V{xmid, ymax}),
 	}
 
 	for _, c := range n.children {
@@ -192,11 +192,7 @@ func (n *N) Insert(x id.ID, data map[id.ID]hyperrectangle.R) {
 		) {
 			m.lookup[x] = true
 		} else {
-			xmin, ymin := n.aabb.Min().X(vector.AXIS_X), n.aabb.Min().X(vector.AXIS_Y)
-			xmax, ymax := n.aabb.Max().X(vector.AXIS_X), n.aabb.Max().X(vector.AXIS_Y)
-
-			xmid, ymid := xmin+(xmax-xmin)/2, ymin+(ymax-ymin)/2
-			m.split(vector.V{xmid, ymid}, data)
+			m.split(data)
 			open = append(
 				open,
 				m.children[ChildNE],
