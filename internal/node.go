@@ -1,6 +1,8 @@
 package node
 
 import (
+	"fmt"
+
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-geometry/nd/hyperrectangle"
 	"github.com/downflux/go-geometry/nd/vector"
@@ -16,23 +18,32 @@ const (
 type Child uint
 
 const (
-	ChildNone Child = 0
+	ChildNE Child = iota
+	ChildSE
+	ChildSW
+	ChildNW
+)
 
-	ChildN Child = 1 << iota
-	ChildE
-	ChildS
-	ChildW
+type Edge uint
 
-	ChildNE = ChildN | ChildE
-	ChildSE = ChildS | ChildE
-	ChildSW = ChildS | ChildW
-	ChildNW = ChildN | ChildW
+const (
+	EdgeNone Edge = 0
+
+	EdgeN Edge = 1 << iota
+	EdgeE
+	EdgeS
+	EdgeW
+
+	EdgeNE = EdgeN | EdgeE
+	EdgeSE = EdgeS | EdgeE
+	EdgeSW = EdgeS | EdgeW
+	EdgeNW = EdgeN | EdgeW
 )
 
 type N struct {
 	depth    int
 	parent   *N
-	children map[Child]*N
+	children [4]*N
 	aabb     hyperrectangle.R
 
 	lookup map[id.ID]bool
@@ -40,13 +51,13 @@ type N struct {
 
 func New(aabb hyperrectangle.R) *N {
 	return &N{
-		aabb:     aabb,
-		children: make(map[Child]*N, 4),
+		aabb: aabb,
 	}
 }
 
-func (n *N) Edge(c Child) []*N {
+func (n *N) Edge(c Edge) []*N {
 	children := make([]*N, 0, 16)
+
 	open := []*N{n}
 	var m *N
 	for len(open) > 0 {
@@ -56,17 +67,25 @@ func (n *N) Edge(c Child) []*N {
 			continue
 		}
 
-		if c&ChildN == ChildN {
-			open = append(open, m.children[ChildN])
-		}
-		if c&ChildE == ChildE {
-			open = append(open, m.children[ChildE])
-		}
-		if c&ChildS == ChildS {
-			open = append(open, m.children[ChildS])
-		}
-		if c&ChildW == ChildW {
-			open = append(open, m.children[ChildW])
+		switch c {
+		case EdgeN:
+			open = append(open, m.children[ChildNE], m.children[ChildNW])
+		case EdgeE:
+			open = append(open, m.children[ChildNE], m.children[ChildSE])
+		case EdgeS:
+			open = append(open, m.children[ChildSE], m.children[ChildSW])
+		case EdgeW:
+			open = append(open, m.children[ChildSW], m.children[ChildNW])
+		case EdgeNE:
+			open = append(open, m.children[ChildNE])
+		case EdgeSE:
+			open = append(open, m.children[ChildSE])
+		case EdgeSW:
+			open = append(open, m.children[ChildSW])
+		case EdgeNW:
+			open = append(open, m.children[ChildNW])
+		default:
+			panic(fmt.Sprintf("invalid edge %v", c))
 		}
 	}
 
