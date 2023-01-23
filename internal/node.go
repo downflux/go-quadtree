@@ -41,18 +41,40 @@ const (
 )
 
 type N struct {
-	depth    int
-	parent   *N
+	depth int
+
+	parent *N
+
+	// corner refers to the appropriate child from the parent node.
+	corner Child
+
 	children [4]*N
 	aabb     hyperrectangle.R
 
 	lookup map[id.ID]bool
 }
 
+// New returns a root node.
 func New(aabb hyperrectangle.R) *N {
 	return &N{
 		aabb: aabb,
 	}
+}
+
+func (n *N) Get(path []Child) *N {
+	m := n
+	for _, c := range path {
+		m = m.children[c]
+	}
+	return m
+}
+
+func (n *N) Path() []Child {
+	path := make([]Child, n.depth)
+	for m := n; m.parent != nil; m = m.parent {
+		path[m.depth] = m.corner
+	}
+	return path
 }
 
 func (n *N) Edge(c Edge) []*N {
@@ -107,16 +129,20 @@ func (n *N) split(p vector.V, data map[id.ID]hyperrectangle.R) {
 	px, py := p.X(vector.AXIS_X), p.X(vector.AXIS_Y)
 
 	n.children[ChildNE] = &N{
-		aabb: *hyperrectangle.New(vector.V{px, py}, vector.V{xmax, ymax}),
+		corner: ChildNE,
+		aabb:   *hyperrectangle.New(vector.V{px, py}, vector.V{xmax, ymax}),
 	}
 	n.children[ChildSE] = &N{
-		aabb: *hyperrectangle.New(vector.V{px, ymin}, vector.V{xmax, py}),
+		corner: ChildSE,
+		aabb:   *hyperrectangle.New(vector.V{px, ymin}, vector.V{xmax, py}),
 	}
 	n.children[ChildSW] = &N{
-		aabb: *hyperrectangle.New(vector.V{xmin, ymin}, vector.V{px, py}),
+		corner: ChildSW,
+		aabb:   *hyperrectangle.New(vector.V{xmin, ymin}, vector.V{px, py}),
 	}
 	n.children[ChildNW] = &N{
-		aabb: *hyperrectangle.New(vector.V{xmin, py}, vector.V{px, ymax}),
+		corner: ChildNW,
+		aabb:   *hyperrectangle.New(vector.V{xmin, py}, vector.V{px, ymax}),
 	}
 
 	for _, c := range n.children {
