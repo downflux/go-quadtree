@@ -72,14 +72,14 @@ func (n *N) Get(path []Child) *N {
 func (n *N) Path() []Child {
 	path := make([]Child, n.depth)
 	for m := n; m.parent != nil; m = m.parent {
-		path[m.depth] = m.corner
+		path[m.depth-1] = m.corner
 	}
 	return path
 }
 
 func (n *N) IsLeaf() bool { return n.children[ChildNE] == nil }
 
-func (n *N) Edge(c Edge) []*N {
+func (n *N) Edge(e Edge) []*N {
 	children := make([]*N, 0, 16)
 
 	open := []*N{n}
@@ -91,7 +91,7 @@ func (n *N) Edge(c Edge) []*N {
 			continue
 		}
 
-		switch c {
+		switch e {
 		case EdgeN:
 			open = append(open, m.children[ChildNE], m.children[ChildNW])
 		case EdgeE:
@@ -109,7 +109,7 @@ func (n *N) Edge(c Edge) []*N {
 		case EdgeNW:
 			open = append(open, m.children[ChildNW])
 		default:
-			panic(fmt.Sprintf("invalid edge %v", c))
+			panic(fmt.Sprintf("invalid edge %v", e))
 		}
 	}
 
