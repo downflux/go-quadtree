@@ -284,3 +284,142 @@ func TestSplit(t *testing.T) {
 		})
 	}
 }
+
+func TestInsert(t *testing.T) {
+	type config struct {
+		name string
+		n    *N
+		x    id.ID
+		data map[id.ID]hyperrectangle.R
+		want *N
+	}
+
+	configs := []config{
+		func() config {
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{100: true},
+			}
+
+			return config{
+				name: "Simple",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{},
+				},
+				x: 100,
+				data: map[id.ID]hyperrectangle.R{
+					100: *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				},
+				want: want,
+			}
+		}(),
+		func() config {
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup: map[id.ID]bool{100: true},
+				floor:  0,
+			}
+
+			return config{
+				name: "Simple/AtFloor",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{},
+				},
+				x: 100,
+				data: map[id.ID]hyperrectangle.R{
+					100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+				},
+				want: want,
+			}
+		}(),
+		func() config {
+			want := &N{
+				aabb:      *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				lookup:    map[id.ID]bool{100: true},
+				floor:     1,
+				tolerance: 100,
+			}
+
+			return config{
+				name: "Simple/TightFit",
+				n: &N{
+					aabb:      *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup:    map[id.ID]bool{},
+					floor:     1,
+					tolerance: 100,
+				},
+				x: 100,
+				data: map[id.ID]hyperrectangle.R{
+					100: *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 99.1}),
+				},
+				want: want,
+			}
+		}(),
+		func() config {
+			want := &N{
+				aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+				floor:  1,
+				lookup: map[id.ID]bool{},
+			}
+			want.children = [4]*N{
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildNE,
+					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					floor:  1,
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildSE,
+					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					floor:  1,
+					lookup: map[id.ID]bool{},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildSW,
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					floor:  1,
+					lookup: map[id.ID]bool{100: true},
+				},
+				&N{
+					depth:  1,
+					parent: want,
+					corner: ChildNW,
+					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					floor:  1,
+					lookup: map[id.ID]bool{},
+				},
+			}
+
+			return config{
+				name: "Simple/InsertLayer",
+				n: &N{
+					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{100, 100}),
+					lookup: map[id.ID]bool{},
+					floor:  1,
+				},
+				x: 100,
+				data: map[id.ID]hyperrectangle.R{
+					100: *hyperrectangle.New(vector.V{0, 0}, vector.V{1, 1}),
+				},
+				want: want,
+			}
+		}(),
+	}
+
+	for _, c := range configs {
+		t.Run(c.name, func(t *testing.T) {
+			c.n.Insert(c.x, c.data)
+			if diff := cmp.Diff(c.want, c.n, opts...); diff != "" {
+				t.Errorf("Insert() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
