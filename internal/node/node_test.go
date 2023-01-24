@@ -130,7 +130,7 @@ func TestGet(t *testing.T) {
 
 	for _, c := range configs {
 		t.Run(c.name, func(t *testing.T) {
-			got := c.n.Get(c.path)
+			got := Get(c.n, c.path)
 			if diff := cmp.Diff(c.want, got, opts...); diff != "" {
 				t.Errorf("Get() mismatch (-want +got):\n%v", diff)
 			}
@@ -169,7 +169,7 @@ func TestPath(t *testing.T) {
 
 	for _, c := range configs {
 		t.Run(c.name, func(t *testing.T) {
-			got := c.n.Path()
+			got := Path(c.n)
 			if diff := cmp.Diff(c.want, got); diff != "" {
 				t.Errorf("Path() mismatch (-want +got):\n%v", diff)
 			}
@@ -227,36 +227,40 @@ func TestSplit(t *testing.T) {
 			}
 			want.children = [4]*N{
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildNE,
-					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
-					lookup: map[id.ID]bool{},
-					floor:  1,
+					depth:     1,
+					parent:    want,
+					corner:    ChildNE,
+					aabb:      *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					lookup:    map[id.ID]bool{},
+					floor:     1,
+					cachePath: []Child{ChildNE},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildSE,
-					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
-					lookup: map[id.ID]bool{},
-					floor:  1,
+					depth:     1,
+					parent:    want,
+					corner:    ChildSE,
+					aabb:      *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					lookup:    map[id.ID]bool{},
+					floor:     1,
+					cachePath: []Child{ChildSE},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildSW,
-					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
-					lookup: map[id.ID]bool{100: true},
-					floor:  1,
+					depth:     1,
+					parent:    want,
+					corner:    ChildSW,
+					aabb:      *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					lookup:    map[id.ID]bool{100: true},
+					floor:     1,
+					cachePath: []Child{ChildSW},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildNW,
-					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
-					lookup: map[id.ID]bool{100: true},
-					floor:  1,
+					depth:     1,
+					parent:    want,
+					corner:    ChildNW,
+					aabb:      *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					lookup:    map[id.ID]bool{100: true},
+					floor:     1,
+					cachePath: []Child{ChildNW},
 				},
 			}
 			data := map[id.ID]hyperrectangle.R{
@@ -560,36 +564,40 @@ func TestInsert(t *testing.T) {
 			}
 			want.children = [4]*N{
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildNE,
-					aabb:   *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
-					floor:  1,
-					lookup: map[id.ID]bool{},
+					depth:     1,
+					parent:    want,
+					corner:    ChildNE,
+					aabb:      *hyperrectangle.New(vector.V{50, 50}, vector.V{100, 100}),
+					floor:     1,
+					lookup:    map[id.ID]bool{},
+					cachePath: []Child{ChildNE},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildSE,
-					aabb:   *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
-					floor:  1,
-					lookup: map[id.ID]bool{},
+					depth:     1,
+					parent:    want,
+					corner:    ChildSE,
+					aabb:      *hyperrectangle.New(vector.V{50, 0}, vector.V{100, 50}),
+					floor:     1,
+					lookup:    map[id.ID]bool{},
+					cachePath: []Child{ChildSE},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildSW,
-					aabb:   *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
-					floor:  1,
-					lookup: map[id.ID]bool{100: true},
+					depth:     1,
+					parent:    want,
+					corner:    ChildSW,
+					aabb:      *hyperrectangle.New(vector.V{0, 0}, vector.V{50, 50}),
+					floor:     1,
+					lookup:    map[id.ID]bool{100: true},
+					cachePath: []Child{ChildSW},
 				},
 				&N{
-					depth:  1,
-					parent: want,
-					corner: ChildNW,
-					aabb:   *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
-					floor:  1,
-					lookup: map[id.ID]bool{},
+					depth:     1,
+					parent:    want,
+					corner:    ChildNW,
+					aabb:      *hyperrectangle.New(vector.V{0, 50}, vector.V{50, 100}),
+					floor:     1,
+					lookup:    map[id.ID]bool{},
+					cachePath: []Child{ChildNW},
 				},
 			}
 
@@ -614,6 +622,160 @@ func TestInsert(t *testing.T) {
 			c.n.Insert(c.x, c.data)
 			if diff := cmp.Diff(c.want, c.n, opts...); diff != "" {
 				t.Errorf("Insert() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestFSM(t *testing.T) {
+	type config struct {
+		name string
+		path []Child
+		e    Edge
+		want []Child
+	}
+
+	configs := []config{
+		{
+			name: "Trivial",
+			path: []Child{},
+			e:    EdgeN,
+			want: nil,
+		},
+		{
+			name: "Edge",
+			path: []Child{ChildNE},
+			e:    EdgeN,
+			want: nil,
+		},
+		{
+			name: "Edge/Recursive",
+			path: []Child{ChildSE, ChildSW},
+			e:    EdgeS,
+			want: nil,
+		},
+		{
+			name: "Sibling",
+			path: []Child{ChildSE},
+			e:    EdgeN,
+			want: []Child{ChildNE},
+		},
+		{
+			name: "Sibling/Recursive",
+			path: []Child{ChildSE, ChildSW},
+			e:    EdgeW,
+			want: []Child{ChildSW, ChildSE},
+		},
+		{
+			name: "Sibling/Recursive/Sibling",
+			path: []Child{ChildSE, ChildSE},
+			e:    EdgeN,
+			want: []Child{ChildSE, ChildNE},
+		},
+		{
+			name: "Sibling/Composite",
+			path: FSM([]Child{ChildNE, ChildSW}, EdgeS),
+			e:    EdgeW,
+			want: []Child{ChildSW, ChildNE},
+		},
+	}
+
+	for _, c := range configs {
+		t.Run(c.name, func(t *testing.T) {
+			got := FSM(c.path, c.e)
+			if diff := cmp.Diff(c.want, got); diff != "" {
+				t.Errorf("FSM() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestNeighbors(t *testing.T) {
+	type config struct {
+		name string
+		n    *N
+		want []*N
+	}
+
+	configs := []config{
+		{
+			name: "Root/NoNeighbors",
+			n:    &N{},
+			want: []*N{},
+		},
+		func() config {
+			root := &N{}
+			root.children = [4]*N{
+				&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}},
+				&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}},
+				&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}},
+				&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}},
+			}
+
+			return config{
+				name: "Simple/FilterEdge",
+				n:    root.children[ChildNE],
+				want: []*N{
+					root.children[ChildSE],
+					root.children[ChildNW],
+					root.children[ChildSW],
+				},
+			}
+		}(),
+	}
+	configs = append(configs, func() []config {
+		root := &N{}
+		root.children = [4]*N{
+			&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}},
+			&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}},
+			&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}},
+			&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}},
+		}
+		root.children[ChildNE].children = [4]*N{
+			&N{corner: ChildNE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNE}},
+			&N{corner: ChildSE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSE}},
+			&N{corner: ChildSW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSW}},
+			&N{corner: ChildNW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNW}},
+		}
+
+		return []config{
+			{
+				name: "Large/SmallNeighbors",
+				n:    root.children[ChildSE],
+				want: []*N{
+					root.children[ChildNE].children[ChildSE],
+					root.children[ChildNE].children[ChildSW],
+					root.children[ChildSW],
+					root.children[ChildNW],
+				},
+			},
+			{
+				name: "Small/LargeNeighbors",
+				n:    root.children[ChildNE].children[ChildSE],
+				want: []*N{
+					root.children[ChildNE].children[ChildNE],
+					root.children[ChildSE],
+					root.children[ChildNE].children[ChildSW],
+					root.children[ChildNE].children[ChildNW],
+				},
+			},
+			{
+				name: "Large/SmallCorner",
+				n:    root.children[ChildSW],
+				want: []*N{
+					root.children[ChildNW],
+					root.children[ChildSE],
+					root.children[ChildNE].children[ChildSW],
+				},
+			},
+		}
+	}()...)
+
+	for _, c := range configs {
+		t.Run(c.name, func(t *testing.T) {
+			got := c.n.Neighbors()
+			if diff := cmp.Diff(c.want, got, opts...); diff != "" {
+				t.Errorf("Neighbors() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}

@@ -10,18 +10,9 @@ import (
 	"github.com/downflux/go-quadtree/id"
 )
 
-type Child uint
-
-const (
-	ChildNE Child = iota
-	ChildSE
-	ChildSW
-	ChildNW
-)
-
 type next struct {
-	child Child
-	edge  Edge
+	quadrant Child
+	next     Edge
 }
 
 var (
@@ -31,47 +22,119 @@ var (
 	// replaced with ChildNW, ChildNE, ChildSW, and ChildSE respectively.
 	fsm = map[Edge]map[Child]next{
 		EdgeE: map[Child]next{
-			ChildNE: next{Child: ChildNW, Edge: EdgeE},
-			ChildSE: next{Child: ChildSW, Edge: EdgeE},
-			ChildSW: next{Child: ChildSE, Edge: EdgeNone},
-			ChildNW: next{Child: ChildNE, Edge: EdgeNone},
+			ChildNE: next{quadrant: ChildNW, next: EdgeE},
+			ChildSE: next{quadrant: ChildSW, next: EdgeE},
+			ChildSW: next{quadrant: ChildSE, next: EdgeNone},
+			ChildNW: next{quadrant: ChildNE, next: EdgeNone},
 		},
 		EdgeW: map[Child]next{
-			ChildNE: next{Child: ChildNW, Edge: EdgeNone},
-			ChildSE: next{Child: ChildSW, Edge: EdgeNone},
-			ChildSW: next{Child: ChildSE, Edge: EdgeW},
-			ChildNW: next{Child: ChildNE, Edge: EdgeW},
+			ChildNE: next{quadrant: ChildNW, next: EdgeNone},
+			ChildSE: next{quadrant: ChildSW, next: EdgeNone},
+			ChildSW: next{quadrant: ChildSE, next: EdgeW},
+			ChildNW: next{quadrant: ChildNE, next: EdgeW},
 		},
 		EdgeS: map[Child]next{
-			ChildNE: next{Child: ChildSE, Edge: EdgeNone},
-			ChildSE: next{Child: ChildNE, Edge: EdgeS},
-			ChildSW: next{Child: ChildNW, Edge: EdgeS},
-			ChildNW: next{Child: ChildSW, Edge: EdgeNone},
+			ChildNE: next{quadrant: ChildSE, next: EdgeNone},
+			ChildSE: next{quadrant: ChildNE, next: EdgeS},
+			ChildSW: next{quadrant: ChildNW, next: EdgeS},
+			ChildNW: next{quadrant: ChildSW, next: EdgeNone},
 		},
 		EdgeN: map[Child]next{
-			ChildNE: next{Child: ChildSE, Edge: EdgeN},
-			ChildSE: next{Child: ChildNE, Edge: EdgeNone},
-			ChildSW: next{Child: ChildNW, Edge: EdgeNone},
-			ChildNW: next{Child: ChildSW, Edge: EdgeN},
+			ChildNE: next{quadrant: ChildSE, next: EdgeN},
+			ChildSE: next{quadrant: ChildNE, next: EdgeNone},
+			ChildSW: next{quadrant: ChildNW, next: EdgeNone},
+			ChildNW: next{quadrant: ChildSW, next: EdgeN},
 		},
 	}
 )
 
+func FSM(path []Child, e Edge) []Child {
+	if e != EdgeN && e != EdgeE && e != EdgeS && e != EdgeW {
+		panic(fmt.Sprintf("invalid edge value %v", e))
+	}
+
+	buf := make([]Child, len(path))
+	copy(buf, path)
+	for i := 0; i < len(path) && e != EdgeNone; i++ {
+		j := len(path) - i - 1
+		next := fsm[e][path[j]]
+		e, buf[j] = next.next, next.quadrant
+	}
+	// Check for edge condition -- if the FSM is still expecting an
+	// ancestor but we have ran out of nodes, then the input node lies on
+	// the edge of the tree, and the input edge asks for a node outside the
+	// tree, e.g. asking for a southern neighbor when the input path is
+	// already on the southern edge.
+	if e != EdgeNone {
+		return nil
+	}
+
+	return buf
+}
+
+type Child uint
+
+const (
+	ChildNE Child = iota
+	ChildSE
+	ChildSW
+	ChildNW
+
+	ChildNone
+)
+
+func (c Child) String() string {
+	switch c {
+	case ChildNE:
+		return "0"
+	case ChildSE:
+		return "1"
+	case ChildSW:
+		return "2"
+	case ChildNW:
+		return "3"
+	default:
+		panic(fmt.Sprintf("invalid child"))
+	}
+}
+
 type Edge uint
 
 const (
-	EdgeNone Edge = 0
-
-	EdgeN Edge = 1 << iota
+	EdgeN Edge = iota
 	EdgeE
 	EdgeS
 	EdgeW
+	EdgeNE
+	EdgeSE
+	EdgeSW
+	EdgeNW
 
-	EdgeNE = EdgeN | EdgeE
-	EdgeSE = EdgeS | EdgeE
-	EdgeSW = EdgeS | EdgeW
-	EdgeNW = EdgeN | EdgeW
+	EdgeNone
 )
+
+func (e Edge) Invert() Edge {
+	switch e {
+	case EdgeN:
+		return EdgeS
+	case EdgeNE:
+		return EdgeSW
+	case EdgeE:
+		return EdgeW
+	case EdgeSE:
+		return EdgeNW
+	case EdgeS:
+		return EdgeN
+	case EdgeSW:
+		return EdgeNE
+	case EdgeW:
+		return EdgeE
+	case EdgeNW:
+		return EdgeSE
+	default:
+		panic(fmt.Sprintf("invalid edge value %v", e))
+	}
+}
 
 type N struct {
 	tolerance float64
@@ -81,16 +144,17 @@ type N struct {
 
 	parent *N
 
-	// corner refers to the appropriate child from the parent node.
+	// corner refers to the appropriate child from the parent
 	corner Child
 
-	children [4]*N
-	aabb     hyperrectangle.R
+	children  [4]*N
+	aabb      hyperrectangle.R
+	cachePath []Child
 
 	lookup map[id.ID]bool
 }
 
-// New returns a root node.
+// New returns a root
 func New(aabb hyperrectangle.R, tolerance float64, floor int) *N {
 	if floor <= 0 {
 		panic("floor must be a positive integer")
@@ -103,21 +167,26 @@ func New(aabb hyperrectangle.R, tolerance float64, floor int) *N {
 	}
 }
 
-func (n *N) Get(path []Child) *N {
-	m := n
+func Get(n *N, path []Child) *N {
 	for _, c := range path {
-		m = m.children[c]
+		if m := n.children[c]; m != nil {
+			n = m
+		} else {
+			break
+		}
 	}
-	return m
+	return n
 }
 
-func (n *N) Path() []Child {
+func Path(n *N) []Child {
 	path := make([]Child, n.depth)
 	for m := n; m.parent != nil; m = m.parent {
 		path[m.depth-1] = m.corner
 	}
 	return path
 }
+
+func (n *N) Path() []Child { return n.cachePath }
 
 func (n *N) IsLeaf() bool { return n.children[ChildNE] == nil }
 
@@ -195,6 +264,7 @@ func (n *N) split(data map[id.ID]hyperrectangle.R) {
 		c.lookup = make(map[id.ID]bool, len(n.lookup))
 		c.tolerance = n.tolerance
 		c.floor = n.floor
+		c.cachePath = Path(c)
 
 		for x := range n.lookup {
 			aabb := data[x]
@@ -304,6 +374,44 @@ func (n *N) Remove(x id.ID, data map[id.ID]hyperrectangle.R) {
 	}
 }
 
-func (n *N) Neighbors() *N {
-	return nil
+func (n *N) Root() *N {
+	var m *N
+	for m = n; m.parent != nil; m = m.parent {
+	}
+	return m
+}
+
+func (n *N) Neighbors() []*N {
+	root := n.Root()
+	p := n.Path()
+
+	paths := make([][]Child, 8)
+
+	paths[EdgeN] = FSM(p, EdgeN)
+	paths[EdgeE] = FSM(p, EdgeE)
+	paths[EdgeS] = FSM(p, EdgeS)
+	paths[EdgeW] = FSM(p, EdgeW)
+
+	paths[EdgeNE] = FSM(paths[EdgeN], EdgeE)
+	paths[EdgeSE] = FSM(paths[EdgeS], EdgeE)
+	paths[EdgeSW] = FSM(paths[EdgeS], EdgeW)
+	paths[EdgeNW] = FSM(paths[EdgeN], EdgeW)
+
+	ns := make([]*N, 0, 16)
+	cache := make(map[string]bool, 16)
+	for e, p := range paths {
+		if len(p) > 0 {
+			for _, m := range Get(root, p).Edge(Edge(e).Invert()) {
+				var buf string
+				for _, c := range m.cachePath {
+					buf += c.String()
+				}
+				if _, ok := cache[buf]; !ok {
+					ns = append(ns, m)
+				}
+				cache[buf] = true
+			}
+		}
+	}
+	return ns
 }
