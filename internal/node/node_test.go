@@ -768,6 +768,18 @@ func TestNeighbors(t *testing.T) {
 					root.children[ChildNE].children[ChildSW],
 				},
 			},
+			{
+				name: "Small/LargeCorner",
+				n:    root.children[ChildNE].children[ChildSW],
+				want: []*N{
+					root.children[ChildNE].children[ChildNW],
+					root.children[ChildNE].children[ChildSE],
+					root.children[ChildSE],
+					root.children[ChildNW],
+					root.children[ChildNE].children[ChildNE],
+					root.children[ChildSW],
+				},
+			},
 		}
 	}()...)
 
