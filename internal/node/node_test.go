@@ -234,6 +234,7 @@ func TestSplit(t *testing.T) {
 					lookup:    map[id.ID]bool{},
 					floor:     1,
 					cachePath: []Child{ChildNE},
+					cacheID:   "0",
 				},
 				&N{
 					depth:     1,
@@ -243,6 +244,7 @@ func TestSplit(t *testing.T) {
 					lookup:    map[id.ID]bool{},
 					floor:     1,
 					cachePath: []Child{ChildSE},
+					cacheID:   "1",
 				},
 				&N{
 					depth:     1,
@@ -252,6 +254,7 @@ func TestSplit(t *testing.T) {
 					lookup:    map[id.ID]bool{100: true},
 					floor:     1,
 					cachePath: []Child{ChildSW},
+					cacheID:   "2",
 				},
 				&N{
 					depth:     1,
@@ -261,6 +264,7 @@ func TestSplit(t *testing.T) {
 					lookup:    map[id.ID]bool{100: true},
 					floor:     1,
 					cachePath: []Child{ChildNW},
+					cacheID:   "3",
 				},
 			}
 			data := map[id.ID]hyperrectangle.R{
@@ -571,6 +575,7 @@ func TestInsert(t *testing.T) {
 					floor:     1,
 					lookup:    map[id.ID]bool{},
 					cachePath: []Child{ChildNE},
+					cacheID:   "0",
 				},
 				&N{
 					depth:     1,
@@ -580,6 +585,7 @@ func TestInsert(t *testing.T) {
 					floor:     1,
 					lookup:    map[id.ID]bool{},
 					cachePath: []Child{ChildSE},
+					cacheID:   "1",
 				},
 				&N{
 					depth:     1,
@@ -589,6 +595,7 @@ func TestInsert(t *testing.T) {
 					floor:     1,
 					lookup:    map[id.ID]bool{100: true},
 					cachePath: []Child{ChildSW},
+					cacheID:   "2",
 				},
 				&N{
 					depth:     1,
@@ -598,6 +605,7 @@ func TestInsert(t *testing.T) {
 					floor:     1,
 					lookup:    map[id.ID]bool{},
 					cachePath: []Child{ChildNW},
+					cacheID:   "3",
 				},
 			}
 
@@ -706,10 +714,10 @@ func TestNeighbors(t *testing.T) {
 		func() config {
 			root := &N{}
 			root.children = [4]*N{
-				&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}},
-				&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}},
-				&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}},
-				&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}},
+				&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}, cacheID: "0"},
+				&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}, cacheID: "1"},
+				&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}, cacheID: "2"},
+				&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}, cacheID: "3"},
 			}
 
 			return config{
@@ -726,16 +734,16 @@ func TestNeighbors(t *testing.T) {
 	configs = append(configs, func() []config {
 		root := &N{}
 		root.children = [4]*N{
-			&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}},
-			&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}},
-			&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}},
-			&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}},
+			&N{corner: ChildNE, parent: root, depth: 1, cachePath: []Child{ChildNE}, cacheID: "0"},
+			&N{corner: ChildSE, parent: root, depth: 1, cachePath: []Child{ChildSE}, cacheID: "1"},
+			&N{corner: ChildSW, parent: root, depth: 1, cachePath: []Child{ChildSW}, cacheID: "2"},
+			&N{corner: ChildNW, parent: root, depth: 1, cachePath: []Child{ChildNW}, cacheID: "3"},
 		}
 		root.children[ChildNE].children = [4]*N{
-			&N{corner: ChildNE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNE}},
-			&N{corner: ChildSE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSE}},
-			&N{corner: ChildSW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSW}},
-			&N{corner: ChildNW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNW}},
+			&N{corner: ChildNE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNE}, cacheID: "00"},
+			&N{corner: ChildSE, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSE}, cacheID: "01"},
+			&N{corner: ChildSW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildSW}, cacheID: "02"},
+			&N{corner: ChildNW, parent: root, depth: 2, cachePath: []Child{ChildNE, ChildNW}, cacheID: "03"},
 		}
 
 		return []config{

@@ -150,6 +150,7 @@ type N struct {
 	children  [4]*N
 	aabb      hyperrectangle.R
 	cachePath []Child
+	cacheID   string
 
 	lookup map[id.ID]bool
 }
@@ -186,9 +187,17 @@ func Path(n *N) []Child {
 	return path
 }
 
-func (n *N) Path() []Child { return n.cachePath }
+func ID(path []Child) string {
+	var buf string
+	for _, c := range path {
+		buf += c.String()
+	}
+	return buf
+}
 
-func (n *N) IsLeaf() bool { return n.children[ChildNE] == nil }
+func (n *N) Path() []Child { return n.cachePath }
+func (n *N) ID() string    { return n.cacheID }
+func (n *N) IsLeaf() bool  { return n.children[ChildNE] == nil }
 
 func (n *N) Edge(e Edge) []*N {
 	children := make([]*N, 0, 16)
@@ -265,6 +274,7 @@ func (n *N) split(data map[id.ID]hyperrectangle.R) {
 		c.tolerance = n.tolerance
 		c.floor = n.floor
 		c.cachePath = Path(c)
+		c.cacheID = ID(c.cachePath)
 
 		for x := range n.lookup {
 			aabb := data[x]
@@ -398,18 +408,14 @@ func (n *N) Neighbors() []*N {
 	paths[EdgeNW] = FSM(paths[EdgeN], EdgeW)
 
 	ns := make([]*N, 0, 16)
-	cache := make(map[string]bool, 16)
+	ids := make(map[string]bool, 16)
 	for e, p := range paths {
 		if len(p) > 0 {
 			for _, m := range Get(root, p).Edge(Edge(e).Invert()) {
-				var buf string
-				for _, c := range m.cachePath {
-					buf += c.String()
-				}
-				if _, ok := cache[buf]; !ok {
+				if _, ok := ids[m.ID()]; !ok {
 					ns = append(ns, m)
 				}
-				cache[buf] = true
+				ids[m.ID()] = true
 			}
 		}
 	}
